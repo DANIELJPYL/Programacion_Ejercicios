@@ -84,7 +84,7 @@ mean(nota[grupo %in% c("A", "B") & nota>=5.5])
 quantile(nota, 0.66)
 quantile(nota[grupo == "C"], 0.66) 
 
-#7. Un alumno tiene una nota de 4.9. ¿Qué porcentaje, del total de alumnos, tiene una nota
+#7. Un alumno tiene una nota de 4.9. Que porcentaje, del total de alumnos, tiene una nota
 #   menor o igual que la suya? Y que porcentaje tiene una nota mayor o igual que la suya?
 
 length(nota[nota <= 4.9])/length(nota)*100
@@ -179,15 +179,28 @@ Solve(matriz01, matriz02)
 
 
 #11.
-MzB <- cbind(seq(1,10), seq(2,20,2), seq(3,30,3), seq(4,40,4), seq(5,50,5))
-MzB
-MzA <- matrix(c(0,1,0,0,1,1,0,1,1,0,0,1,0,0,1,1,0,1,0,1,0,1,0,1,0), nrow=5, ncol=5)
-MzA
-T_MzB <- t(MzB) 
-T_MzB
+MA <- cbind(c(1:10), 
+           seq(2, 20, by = 2), 
+           seq(3, 30, by = 3), 
+           seq(4, 40, by = 4),
+           seq(5, 50, by = 5))
+
+MB <- cbind(c(0, 1, 0, 0, 1), 
+           c(1, 0, 1, 1, 0),
+           c(0, 1, 0, 0, 1),
+           c(1, 0, 1, 0, 1),
+           c(0, 1, 0, 1, 0))
+
+(MA %*% MB) - (MA %*% (t(MB)))
+
+#B <- matrix(B, nrow = 5, ncol = 5, byrow = T)
 
 
 #12.
+x <- cbind(c(1:5), c(1, -1, 0, 1, 2))
+y <- cbind(c(0, 0, 1, 1, 3))
+
+(solve(t(x) %*% x)) %*% t(x) %*% y
 
 #13.
 data(co2)
@@ -204,7 +217,8 @@ dif_2020_2019 <- 2.64
 year_2020 <- 2020
 
 plot(x = year, y = dif, 
-     type = "b", 
+     type = "b",
+     pch = 16,
      xlab = "a?o", 
      ylab = "CO2 aumento por a?o",
      xlim = c(1960, 2020),
@@ -213,4 +227,89 @@ points(x = year_2020, y = dif_2020_2019, pch = 4, col = "red")
 
 
 #14.
+rainf <- read.csv("rainfall.csv") %>% 
+  as_data_frame() %>% 
+  print
 
+rainf2 <- select(rainf, sep:name) 
+rainf2
+
+pp <- gather(data = rainf2, key = "mes", value = "pp", 1:9)
+
+pp180 <- filter(pp180, pp >= 180)
+table(pp180$name)
+
+#15.
+MetEst <- read_csv("listRaingauge.csv") %>% 
+  filter(DEPARTAMENTO == "LAMBAYEQUE", NOM_EST == "LAMBAYEQUE") %>% 
+  print()
+
+dataL <- read_csv("raingaugeDataset.csv") %>%
+  select(date, "qc00000301") %>% 
+  mutate(date = as.Date(date, format = "%d/%m/%Y")) %>% 
+  rename(pp = qc00000301) %>%
+  arrange(date) %>% 
+  as.tibble()
+
+tail(dataL)
+seq(as.Date("1980-01-01"), as.Date("2013-12-31"), by = "day") %>% 
+  length()
+# De lo descrito anteriormente, se solicita:
+# Determine la cantidad de missing values de la serie de tiempo a paso diario. 
+
+NAVALUES <-
+  dataL %>%
+  mutate( #indicara el nro de missing values de cada mes
+    misVal = is.na(pp)#retorna la suma del conteo de na de la columna pp
+  ) %>%
+  summarise(
+    naVal = sum(misVal)
+  ) %>%
+  print()
+
+# Calcule la serie de tiempo de precipitación acumulada mensual 
+#(si el # de dias con missing values, en un mes, 
+#supera el 10%, la precipitacion acumulada mensual sera considerado como un NA).
+
+NAVALUES <-
+  dataL %>%
+  mutate( #indicara el nro de missing values de cada mes
+    misVal = is.na(pp)#retorna la suma del conteo de na de la columna pp
+  ) %>% 
+  print()
+
+ppMonth <- 
+  NAVALUES %>% 
+  group_by(date = str_sub(date, 1,7)) %>% 
+  mutate( #indicara el nro de missing values de cada mes
+    misVal = sum(is.na(pp))*100/n() #retorna la suma del conteo de na de la columna pp y lo convierte a %
+  ) %>% 
+  summarise( #creara una tabla resumen con el promedio de pp y su % de NA
+    pp = sum(pp, na.rm = T ),#suma de la pp por mes
+    misVal = unique(misVal)
+  ) %>% 
+  mutate(
+    pp = ifelse(misVal >= 10, NA, pp),#si misVal es igual o mayor a 10, se convierte en NA, de lo contrario, conserva su valor
+    date = as.Date(sprintf("%1$s-01", date)),
+    month = str_sub(date, 6,7)
+  ) %>% 
+  print()
+# Determine la cantidad de missing values de la serie de tiempo a paso mensual.
+ppMonth
+naCant <- 
+  ppMonth%>% 
+  summarise(isNa = sum(is.na(pp))) %>% 
+  print()
+
+# Cree una funcion que calcule, a partir de los datos de precipitacion mensual, 
+#la climatologiaa (Ene-Dic) para el perioodo 1980-2010.  
+
+pp8010 <-
+  ppMonth %>% 
+  filter(date >= "1980-01-01" & date <="2010-12-31") %>% 
+  print()
+group_by(month) %>%
+  summarise(
+    ppmean = mean(pp, na.rm = T)
+  ) %>%
+  print()
